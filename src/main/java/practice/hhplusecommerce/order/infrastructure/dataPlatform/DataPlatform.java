@@ -1,10 +1,10 @@
 package practice.hhplusecommerce.order.infrastructure.dataPlatform;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 @Slf4j
-@Service
+@Component
 public class DataPlatform {
 
   public String send(Long id, Long userId, Integer orderTotalPrice) {

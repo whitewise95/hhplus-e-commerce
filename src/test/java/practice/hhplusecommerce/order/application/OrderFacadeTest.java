@@ -3,6 +3,8 @@ package practice.hhplusecommerce.order.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -12,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import practice.hhplusecommerce.common.exception.BadRequestException;
 import practice.hhplusecommerce.common.exception.NotFoundException;
@@ -44,7 +47,7 @@ public class OrderFacadeTest {
   OrderService orderService;
 
   @Mock
-  DataPlatform dataPlatform;
+  ApplicationEventPublisher applicationEventPublisher;
 
 
   @BeforeEach
@@ -88,7 +91,7 @@ public class OrderFacadeTest {
     saveOrder.addOrderProduct(new OrderProduct(orderProductId, productName, productPrice, quantity, saveOrder, productList.get(0)));
     when(orderService.createOrder(productPrice, user, productList, create.getProductList())).thenReturn(saveOrder);
 
-    when(dataPlatform.send(orderId, userId, productPrice)).thenReturn("OK 200");
+    doNothing().when(applicationEventPublisher).publishEvent(any());
     OrderResponse orderResponse = orderFacade.order(userId, create);
 
     //then
@@ -224,59 +227,5 @@ public class OrderFacadeTest {
     assertNull(orderResponse);
     assertNotNull(e);
     assertEquals(e.getMessage(), "잔액이 부족합니다.");
-  }
-
-  @Test
-  public void 주문하기기능_데이터플랫폼에전송실패_테스트() {
-
-    //given
-    long userId = 1L;
-    String userName = "백현명";
-    Integer amount = 5000;
-
-    long productId = 1L;
-    int quantity = 2;
-    String productName = "꽃병";
-    int stock = 5;
-
-    long orderProductId = 1L;
-
-    long orderId = 1L;
-    int productPrice = 300;
-    int totalProductPrice = quantity * productPrice;
-
-    BadRequestException e = null;
-    OrderResponse orderResponse = null;
-
-    //when
-    User user = new User(userId, userName, amount);
-    when(userService.getUser(userId)).thenReturn(user);
-
-    List<Product> productList = List.of(new Product(1L, productName, productPrice, stock));
-    when(productService.getProductListByProductIdList(List.of(productId))).thenReturn(productList);
-
-    OrderFacadeRequestDto.Create create = new Create();
-
-
-    OrderFacadeRequestDto.OrderProductCreate orderProductCreate = new OrderProductCreate();
-    orderProductCreate.setId(productId);
-    orderProductCreate.setQuantity(quantity);
-    create.setProductList(List.of(orderProductCreate));
-
-    Order saveOrder = new Order(1L, totalProductPrice, user);
-    when(orderService.createOrder(totalProductPrice, user, productList, create.getProductList())).thenReturn(saveOrder);
-
-    when(dataPlatform.send(orderId, userId, totalProductPrice)).thenReturn("FAIL 500");
-
-    try {
-      orderResponse = orderFacade.order(userId, create);
-    } catch (BadRequestException bre) {
-      e = bre;
-    }
-
-    //then
-    assertNull(orderResponse);
-    assertNotNull(e);
-    assertEquals(e.getMessage(), "주문정보를 데이처플랫폼에 전송 실패했습니다.");
   }
 }

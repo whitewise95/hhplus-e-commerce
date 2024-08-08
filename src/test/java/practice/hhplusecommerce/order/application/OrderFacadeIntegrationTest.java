@@ -3,14 +3,19 @@ package practice.hhplusecommerce.order.application;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.transaction.annotation.Transactional;
 import practice.hhplusecommerce.common.exception.BadRequestException;
 import practice.hhplusecommerce.common.exception.NotFoundException;
@@ -18,8 +23,10 @@ import practice.hhplusecommerce.order.application.dto.request.OrderFacadeRequest
 import practice.hhplusecommerce.order.application.dto.request.OrderFacadeRequestDto.Create;
 import practice.hhplusecommerce.order.application.dto.request.OrderFacadeRequestDto.OrderProductCreate;
 import practice.hhplusecommerce.order.application.dto.response.OrderFacadeResponseDto.OrderResponse;
+import practice.hhplusecommerce.order.application.listener.DataPlatformEventListener;
 import practice.hhplusecommerce.order.business.entity.Order;
 import practice.hhplusecommerce.order.business.entity.OrderProduct;
+import practice.hhplusecommerce.order.business.event.DataPlatformEvent;
 import practice.hhplusecommerce.order.business.repository.OrderProductRepository;
 import practice.hhplusecommerce.order.business.repository.OrderRepository;
 import practice.hhplusecommerce.product.business.entity.Product;
@@ -42,14 +49,16 @@ public class OrderFacadeIntegrationTest {
   @Autowired
   private OrderFacade orderFacade;
 
+  @SpyBean
+  private DataPlatformEventListener dataPlatformEventListener;
+
   @Autowired
   private OrderProductRepository orderProductRepository;
 
   @Test
-  @Transactional
   public void 주문기능_주문되는지_통합테스트() {
     //given
-    String userName = "백현명";
+    String userName = "백현1";
     int amount = 5500;
     int price1 = 500;
     int price2 = 400;
@@ -84,6 +93,7 @@ public class OrderFacadeIntegrationTest {
     List<OrderProduct> orderProductList = orderProductRepository.findAllByOrderId(order.getId());
 
     //then
+    verify(dataPlatformEventListener, times(1)).handleSendDataPlatformEvent(any());
     assertNotNull(order);
     assertEquals(order.getOrderTotalPrice(), totalProductPrice);
 
@@ -94,6 +104,9 @@ public class OrderFacadeIntegrationTest {
     }
 
     assertEquals(orderProductList.size(), order.getOrderProductList().size());
+
+    userRepository.delete(saveUser);
+    productRepository.deleteAllInBatch(saveProductList);
   }
 
   @Test
@@ -381,7 +394,6 @@ public class OrderFacadeIntegrationTest {
     userRepository.delete(whenUser);
     productRepository.deleteAllInBatch(saveProductList);
     orderRepository.deleteAllInBatch(orderList);
-
 
     assertEquals(whenUser.getAmount(), amount - (max * 2000));
 

@@ -30,4 +30,17 @@ public class OrderCommand {
       );
     }
   }
+
+  public record SendDataPlatform(
+      Long orderId,
+      Long userId,
+      Integer orderTotalPrice
+  ){
+
+    public SendDataPlatform(Long orderId, Long userId, Integer orderTotalPrice) {
+      this.orderId = orderId;
+      this.userId = userId;
+      this.orderTotalPrice = orderTotalPrice;
+    }
+  }
 }
